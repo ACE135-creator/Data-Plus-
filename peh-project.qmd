@@ -1,6 +1,0 @@
----
-title: "Quarto File"
-fomat: html
----
-
-New QMD file for project
