@@ -24,6 +24,8 @@ ggplot(PEH_data, aes(x = l_place_rcounty_fct)) +
 
 # Table Summary Age####
 
+library(gtsummary)
+
 PEH_data %>% 
   tbl_summary(
     include = c(l_person_age_num),    
