@@ -1,0 +1,126 @@
+
+# Background --------------------------------------------------------------
+setwd("~/Desktop/Data Plus")
+PEH_data <- read.csv("Data Plus 2.csv")
+
+table(PEH_data$l_place_rcounty_fct)
+
+#viewing unique values in each column
+for (colname in names(PEH_data)) {
+  cat("Unique values in", colname, ":\n")
+  print(unique(PEH_data[[colname]]))
+  cat("\n")
+}
+
+library(ggplot2)
+library(dplyr)
+
+
+# Graphs ALL acmecods -----------------------------------------------------
+
+ggplot(PEH_data, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death", x = "Cause of Death", y = "Number of People") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Top 5 acmecods ------------------------------------------------------------
+
+top_acmecod <- PEH_data %>%
+  count(acmecod, sort = TRUE) %>%   # Count and sort by frequency (descending)
+  slice_head(n = 5)                 # Keep top 5 rows
+
+PEH_top <- PEH_data %>%
+  filter(acmecod %in% top_acmecod$acmecod)
+
+
+PEH_top_named <- PEH_top %>%
+  mutate(acmecod_label = case_when(
+    acmecod == "C349" ~ "Lung Cancer",
+    acmecod == "G309" ~ "Alzheimer's Disease",
+    acmecod == "I251" ~ "Coronary Artery Disease",
+    acmecod == "J449" ~ "Chronic Obstructive Pulmonary Disease",
+    acmecod == "U071" ~ "COVID-19",
+    TRUE ~ acmecod  # Keep other codes unchanged
+  ))
+
+ggplot(PEH_top_named, aes(x = acmecod_label)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Top 5 Causes of Death in General Population", x = "Cause", y = "Number of People") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+
+
+
+# How to Isolate one variable in a column -----------------------------------
+
+#Filter rows with acmecod == "X42", graphs ones column
+PEH_X42 <- PEH_data %>%
+  filter(acmecod == "X42")
+
+ggplot(PEH_X42, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death: X42 or X44", x = "Cause of Death", y = "Number of People") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Check how many rows you have
+nrow(PEH_X42) 
+
+# How to Isolate multiple variables on the same axis ----------------------
+
+#graphs 2 columns, one of X42 and the other of X44
+PEH_X42_X44 <- PEH_data %>%
+  filter(acmecod %in% c("X42", "X44"))
+
+ggplot(PEH_X42_X44, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death: X42 or X44", x = "Cause of Death", y = "Number of People") +  
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# How to Isolate multiple variables in the same column -------------------------
+
+#creates a graph where Overdose column is X44 and X42 combined, and other is everything else
+PEH_combined <- PEH_data %>%
+  mutate(cause_group = case_when(
+    acmecod %in% c("X42", "X44") ~ "Overdose",
+    TRUE ~ "Other"
+  ))
+
+ggplot(PEH_combined, aes(x = cause_group)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Grouped Causes of Death", x = "Cause", y = "Number of People") 
+
+
+# How to Isolate all Rows starting with X ---------------------------------
+
+#graphs all rows starting with X separately 
+library(stringr)
+
+PEH_X <- PEH_data %>%
+  filter(str_starts(acmecod, "X"))
+
+ggplot(PEH_X, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Causes of Death Starting with X", x = "acmecod", y = "Number of People") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#finds unique numbers of codes starting with X (X42,X44...), # values on x-axis
+n_unique_X_codes <- PEH_data %>%
+  filter(str_starts(acmecod, "X")) %>%
+  distinct(acmecod) %>%
+  nrow()
+
+print(n_unique_X_codes)
+
+#finds total number of rows that had codes starting with X (includes duplicates) 
+n_X_rows <- PEH_data %>%
+  filter(str_starts(acmecod, "X")) %>%
+  nrow()
+
+print(n_X_rows)
