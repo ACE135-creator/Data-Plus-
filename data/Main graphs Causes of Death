@@ -1,0 +1,185 @@
+
+# Isolating codes based on Alphabet - 1st Graph with All Deaths ------------------------------------
+library(stringr)
+
+PEH_combined_Alphabet <- PEH_data %>%
+  mutate(cause_group = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious and Parasitic Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8")) ~ "Blood Diseases",
+    (str_starts(acmecod, "E")) ~ "Endocrine, nutritional and metabolic diseases",
+    (str_starts(acmecod, "F")) ~ "Mental, Behavioral and Neurodevelopmental disorders",
+    (str_starts(acmecod, "G")) ~ "Diseases of the Nervous System",
+    (str_starts(acmecod, "H")) ~ "Diseases of Eye/Ear",
+    (str_starts(acmecod, "I")) ~ "Diseases of Circulatory System",
+    (str_starts(acmecod, "J")) ~ "Diseases of the Respiratory System",
+    (str_starts(acmecod, "K")) ~ "Diseases of the Digestive System",
+    (str_starts(acmecod, "L")) ~ "Diseases of the Skin System",
+    (str_starts(acmecod, "M")) ~ "Diseases of the Muscoskeletal System",
+    (str_starts(acmecod, "N")) ~ "Diseases of the Genitourinary System",
+    (str_starts(acmecod, "O")) ~ "Pregnancy and Childbirth",
+    (str_starts(acmecod, "P")) ~ "Prenatal Conditions",
+    (str_starts(acmecod, "Q")) ~ "Congenital Malformations",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+    | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+    | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+    | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+    | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+    | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+    | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+    | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+    | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+    | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+    | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+    | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+    | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+    | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+    | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+    | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+    | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+    | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+    | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other"
+  ))
+
+ggplot(PEH_combined_Alphabet, aes(x = cause_group)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Grouped Causes of Death", x = "Cause", y = "Number of People") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# 2nd Graph ---------------------------------------------------------------
+library(stringr)
+
+PEH_combined_Alphabet <- PEH_data %>%
+  mutate(cause_group = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious and Parasitic Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Other",
+    (str_starts(acmecod, "E")) ~ "Endocrine, nutritional and metabolic diseases",
+    (str_starts(acmecod, "F")) ~ "Mental, Behavioral and Neurodevelopmental disorders",
+    (str_starts(acmecod, "G")) ~ "Diseases of the Nervous System",
+    (str_starts(acmecod, "H")) ~ "Other",
+    (str_starts(acmecod, "I")) ~ "Diseases of Circulatory System",
+    (str_starts(acmecod, "J")) ~ "Diseases of the Respiratory System",
+    (str_starts(acmecod, "K")) ~ "Diseases of the Digestive System",
+    (str_starts(acmecod, "L")) ~ "Other",
+    (str_starts(acmecod, "M")) ~ "Other",
+    (str_starts(acmecod, "N")) ~ "Diseases of the Genitourinary System",
+    (str_starts(acmecod, "O")) ~ "Other",
+    (str_starts(acmecod, "P")) ~ "Other",
+    (str_starts(acmecod, "Q")) ~ "Other",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+     | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+     | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+     | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+     | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+     | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+     | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+     | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+     | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+     | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+     | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+     | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+     | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+     | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+     | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")
+     | str_starts(acmecod, "T35") | str_starts(acmecod, "T9")
+     | str_starts(acmecod, "W")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+     | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+     | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+     | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+     | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other"
+  ))
+
+ggplot(PEH_combined_Alphabet, aes(x = cause_group)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Grouped Causes of Death", x = "Cause", y = "Number of People") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Race --------------------------------------------------------------------
+library(dplyr)
+library(stringr)
+
+PEH_combined_Alphabet_Race <- PEH_data %>%
+  mutate(cause_group = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious and Parasitic Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Other",
+    (str_starts(acmecod, "E")) ~ "Endocrine, nutritional and metabolic diseases",
+    (str_starts(acmecod, "F")) ~ "Mental, Behavioral and Neurodevelopmental disorders",
+    (str_starts(acmecod, "G")) ~ "Diseases of the Nervous System",
+    (str_starts(acmecod, "H")) ~ "Other",
+    (str_starts(acmecod, "I")) ~ "Diseases of Circulatory System",
+    (str_starts(acmecod, "J")) ~ "Diseases of the Respiratory System",
+    (str_starts(acmecod, "K")) ~ "Diseases of the Digestive System",
+    (str_starts(acmecod, "L")) ~ "Other",
+    (str_starts(acmecod, "M")) ~ "Other",
+    (str_starts(acmecod, "N")) ~ "Diseases of the Genitourinary System",
+    (str_starts(acmecod, "O")) ~ "Other",
+    (str_starts(acmecod, "P")) ~ "Other",
+    (str_starts(acmecod, "Q")) ~ "Other",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+     | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+     | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+     | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+     | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+     | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+     | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+     | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+     | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+     | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+     | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+     | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+     | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+     | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+     | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")
+     | str_starts(acmecod, "T35") | str_starts(acmecod, "T9")
+     | str_starts(acmecod, "W")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+     | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+     | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+     | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+     | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other")) %>%
+  mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+  mutate(l_person_raceeth_fct = case_when(
+    l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+    l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+    l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+    l_person_raceeth_fct %in% c("Other", "Unknown",
+    "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+    TRUE ~ l_person_raceeth_fct))
+
+ggplot(PEH_combined_Alphabet_Race, aes(x = cause_group, fill = l_person_raceeth_fct)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(title = "Cause of Death by Race", x = "Cause", y = "Number of People") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
