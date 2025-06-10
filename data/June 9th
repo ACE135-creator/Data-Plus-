@@ -1,0 +1,1230 @@
+# Background --------------------------------------------------------------
+setwd("~/Desktop/Data Plus")
+PEH_data <- read.csv("Data Plus 2.csv")
+
+table(PEH_data$l_place_rcounty_fct)
+
+#viewing unique values in each column
+for (colname in names(PEH_data)) {
+  cat("Unique values in", colname, ":\n")
+  print(unique(PEH_data[[colname]]))
+  cat("\n")
+}
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+
+
+# Graphs ALL acmecods -----------------------------------------------------
+
+ggplot(PEH_data, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death", x = "Cause of Death", y = "Number of People") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Top 5 acmecods ------------------------------------------------------------
+
+top_acmecod <- PEH_data %>%
+  count(acmecod, sort = TRUE) %>%   # Count and sort by frequency (descending)
+  slice_head(n = 5)                 # Keep top 5 rows
+
+PEH_top <- PEH_data %>%
+  filter(acmecod %in% top_acmecod$acmecod)
+
+# replaces the acmecods on the x-axis with disease names
+PEH_top_named <- PEH_top %>%
+  mutate(acmecod_label = case_when(
+    acmecod == "C349" ~ "Lung Cancer",
+    acmecod == "G309" ~ "Alzheimer's Disease",
+    acmecod == "I251" ~ "Coronary Artery Disease",
+    acmecod == "J449" ~ "Chronic Obstructive Pulmonary Disease",
+    acmecod == "U071" ~ "COVID-19",
+    TRUE ~ acmecod  # Keep other codes unchanged
+  ))
+
+ggplot(PEH_top_named, aes(x = acmecod_label)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Top 5 Causes of Death in General Population", x = "Cause", y = "Number of People") +
+  theme_minimal()+ 
+  theme(axis.text.x = element_text(angle = 35, hjust = 1))
+
+
+# How to Isolate one variable in a column -----------------------------------
+
+#Filter rows with acmecod == "X42", graphs ones column
+PEH_X42 <- PEH_data %>%
+  filter(acmecod == "X42")
+
+ggplot(PEH_X42, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death: X42", x = "Cause of Death", y = "Number of People") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Check how many rows you have
+nrow(PEH_X42) 
+
+# How to Isolate multiple variables on the same axis ----------------------
+
+#graphs 2 columns, one of X42 and the other of X44
+PEH_X42_X44 <- PEH_data %>%
+  filter(acmecod %in% c("X42", "X44"))
+
+ggplot(PEH_X42_X44, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Cause of Death: X42 or X44", x = "Cause of Death", y = "Number of People") +  
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# How to Isolate multiple variables in the same column -------------------------
+
+#creates a graph where Overdose column is X44 and X42 combined, and other is everything else
+PEH_combined <- PEH_data %>%
+  mutate(cause_group = case_when(
+    acmecod %in% c("X42", "X44") ~ "Overdose",
+    TRUE ~ "Other"
+  ))
+
+ggplot(PEH_combined, aes(x = cause_group)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Grouped Causes of Death", x = "Cause", y = "Number of People") 
+
+
+# How to Isolate all Rows starting with X ---------------------------------
+
+#graphs all rows starting with X separately 
+library(stringr)
+
+PEH_X <- PEH_data %>%
+  filter(str_starts(acmecod, "X"))
+
+ggplot(PEH_X, aes(x = acmecod)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Causes of Death Starting with X", x = "acmecod", y = "Number of People") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#finds unique numbers of codes starting with X (X42,X44...), # values on x-axis
+n_unique_X_codes <- PEH_data %>%
+  filter(str_starts(acmecod, "X")) %>%
+  distinct(acmecod) %>%
+  nrow()
+
+print(n_unique_X_codes)
+
+#finds total number of rows that had codes starting with X (includes duplicates) 
+n_X_rows <- PEH_data %>%
+  filter(str_starts(acmecod, "X")) %>%
+  nrow()
+
+print(n_X_rows)
+
+# Isolating codes based on Alphabet - 1st Graph with All Deaths ------------------------------------
+library(stringr)
+
+PEH_combined_Alphabet1 <- PEH_data %>%
+  mutate(cause_group = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious and Parasitic Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8")) ~ "Blood Diseases",
+    (str_starts(acmecod, "E")) ~ "Endocrine, nutritional and metabolic diseases",
+    (str_starts(acmecod, "F")) ~ "Mental, Behavioral and Neurodevelopmental disorders",
+    (str_starts(acmecod, "G")) ~ "Diseases of the Nervous System",
+    (str_starts(acmecod, "H")) ~ "Diseases of Eye/Ear",
+    (str_starts(acmecod, "I")) ~ "Diseases of Circulatory System",
+    (str_starts(acmecod, "J")) ~ "Diseases of the Respiratory System",
+    (str_starts(acmecod, "K")) ~ "Diseases of the Digestive System",
+    (str_starts(acmecod, "L")) ~ "Diseases of the Skin System",
+    (str_starts(acmecod, "M")) ~ "Diseases of the Muscoskeletal System",
+    (str_starts(acmecod, "N")) ~ "Diseases of the Genitourinary System",
+    (str_starts(acmecod, "O")) ~ "Pregnancy and Childbirth",
+    (str_starts(acmecod, "P")) ~ "Prenatal Conditions",
+    (str_starts(acmecod, "Q")) ~ "Congenital Malformations",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+    | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+    | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+    | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+    | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+    | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+    | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+    | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+    | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+    | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+    | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+    | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+    | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+    | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+    | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+    | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+    | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+    | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+    | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other"
+  ))
+
+ggplot(PEH_combined_Alphabet1, aes(x = cause_group)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Grouped Causes of Death", x = "Cause", y = "Number of People") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# 2nd Graph- final All Deaths Graph for General Population  ---------------------------------------------------------------
+library(stringr)
+
+PEH_combined_Alphabet2 <- PEH_data %>%
+  mutate(grouped_deaths = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Other",
+    (str_starts(acmecod, "E")) ~ "Nutritional Diseases",
+    (str_starts(acmecod, "F")) ~ "Neurodevelopmental Disorders",
+    (str_starts(acmecod, "G")) ~ "Nervous System Diseases",
+    (str_starts(acmecod, "H")) ~ "Other",
+    (str_starts(acmecod, "I")) ~ "Circulatory System Diseases",
+    (str_starts(acmecod, "J")) ~ "Respiratory System Diseases",
+    (str_starts(acmecod, "K")) ~ "Digestive System Diseases",
+    (str_starts(acmecod, "L")) ~ "Other",
+    (str_starts(acmecod, "M")) ~ "Other",
+    (str_starts(acmecod, "N")) ~ "Genitourinary System Diseases",
+    (str_starts(acmecod, "O")) ~ "Other",
+    (str_starts(acmecod, "P")) ~ "Other",
+    (str_starts(acmecod, "Q")) ~ "Other",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+     | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+     | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+     | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+     | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+     | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+     | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+     | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+     | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+     | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+     | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+     | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+     | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+     | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+     | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")
+     | str_starts(acmecod, "T35") | str_starts(acmecod, "T9")
+     | str_starts(acmecod, "W")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+     | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+     | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+     | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+     | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other")) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+PEH_combined_Alphabet2 <- PEH_combined_Alphabet2 %>%
+  filter(Population_Breakdown != "PEH")
+
+PEH_combined_Alphabet2 <- PEH_combined_Alphabet2 %>%
+  mutate(grouped_deaths = fct_infreq(grouped_deaths) %>% fct_rev())
+
+
+ggplot(PEH_combined_Alphabet2, aes(x = grouped_deaths)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -.1, size = 5) +
+  coord_flip() +
+  labs(title = "Cause of Death for General Population", x = "Cause", y = "Number of People") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme(axis.text.x = element_text(angle = 0))  +
+  theme(plot.title = element_text(hjust = .5, size = 20, face = "bold")) +
+  theme(axis.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 14)) +
+  theme(plot.margin = margin(20, 20, 20, 20))
+
+
+
+# Race All Deaths General Pop Counts--------------------------------------------------------------------
+library(dplyr)
+library(stringr)
+
+PEH_combined_Alphabet_Race <- PEH_combined_Alphabet2 %>%
+  mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+  mutate(Race = case_when(
+    l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+    l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+    l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+    l_person_raceeth_fct %in% c("Other", "Unknown",
+    "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+    TRUE ~ l_person_raceeth_fct))
+
+ggplot(PEH_combined_Alphabet_Race, aes(x = grouped_deaths, fill = Race)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(title = "Cause of Death by Race", x = "Cause", y = "Number of People") +
+  coord_flip() + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0))
+
+
+# Race All Deaths General Pop % -------------------------------------------
+
+percent_Race_data <- PEH_combined_Alphabet_Race %>%
+  group_by(grouped_deaths, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+
+ggplot(percent_Race_data, aes(x = grouped_deaths, y = percentage, fill = Race)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(
+    title = "Cause of Death by Race (Percentage)",
+    x = "Cause of Death",
+    y = "Percentage of People"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  ) +
+  geom_text(aes(label = ifelse(percentage > 10, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+
+# Race All Deaths General Pop Rates  --------------------------------------
+library(dplyr)
+library(ggplot2)
+
+# Add your population denominator
+race_population_general <- data.frame(
+  Race = c("Caucasian", "African American", "Hispanic", "Other"),
+  population = c(7710125, 2441171, 1259247, 607531) 
+  #these numbers came from https://www.census.gov/quickfacts/fact/table/NC/NES010223 
+)
+
+# Summarize death counts by cause and race
+rate_Race_data <- PEH_combined_Alphabet_Race %>%
+  group_by(grouped_deaths, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  left_join(race_population_general, by = "Race") %>%
+  mutate(rate = (count / population) * 1000000)
+
+# Plot the rate
+ggplot(rate_Race_data, aes(x = grouped_deaths, y = rate, fill = Race)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(
+    title = "Cause of Death by Race (Rate per 1,000,000)",
+    x = "Cause of Death",
+    y = "Rate per 1,000,000 People"
+  ) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.text.x = element_text(angle = 0, size = 14),
+    axis.text.y = element_text(size = 14),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+
+# Sex All Deaths General Pop ---------------------------------------------------------------------
+library(dplyr)
+library(stringr)
+
+ggplot(PEH_combined_Alphabet2, aes(x = grouped_deaths, fill = l_person_sex_fct)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c(
+    "Female" = "skyblue",
+    "Male" = "royalblue",
+    "Unknown" = "slategray"
+  )) +
+  labs(title = "Cause of Death by Sex", x = "Cause", y = "Number of People") +
+  coord_flip() + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0))
+
+
+# Sex All Deaths General Pop % --------------------------------------------
+
+percent_Sex_data <- PEH_combined_Alphabet2 %>%
+  group_by(grouped_deaths, l_person_sex_fct) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+
+ggplot(percent_Sex_data, aes(x = grouped_deaths, y = percentage, fill = l_person_sex_fct)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Female" = "skyblue",
+    "Male" = "royalblue"
+  )) +
+  labs(title = "Cause of Death by Sex (Percentage)", x = "Cause of Death",
+    y = "Percentage of People") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = ifelse(percentage > 10, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+# Sex All Deaths General Pop Rate  ----------------------------------------------------
+library(dplyr)
+library(ggplot2)
+
+sex_population_general <- data.frame(
+  Sex = c("Female", "Male"),
+  population = c(5644518, 5401505)
+)  #these numbers came from https://www.census.gov/quickfacts/fact/table/NC/NES010223 
+
+
+# Compute death rate per 1,000,000 people by cause of death and sex
+rate_Sex_data <- PEH_combined_Alphabet2 %>%
+  rename(Sex = l_person_sex_fct) %>%  # Rename for joining
+  group_by(grouped_deaths, Sex) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  left_join(sex_population_general, by = "Sex") %>%
+  mutate(rate = (count / population) * 1000000)
+
+# Plot
+ggplot(rate_Sex_data, aes(x = grouped_deaths, y = rate, fill = Sex)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Female" = "skyblue",
+    "Male" = "royalblue"
+  )) +
+  labs(
+    title = "Cause of Death by Sex (Rate per 1,000,000 People)",
+    x = "Cause of Death",
+    y = "Rate per 1,000,000 People"
+  ) +
+  coord_flip() +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold"),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
+  )
+
+# Age All Deaths General Pop ---------------------------------------------------------------------
+PEH_combined_Alphabet_Age <- PEH_combined_Alphabet2 %>%
+  mutate(Age = case_when(
+    l_person_age_num %in% 0:19 ~ "0-19",
+    l_person_age_num %in% 20:39 ~ "20-39", 
+    l_person_age_num %in% 40:59 ~ "40-59",
+    l_person_age_num %in% 60:79 ~ "60-79",
+    l_person_age_num %in% 80:120 ~ "80+",
+    TRUE ~ "Other"))
+
+ggplot(PEH_combined_Alphabet_Age, aes(x = grouped_deaths, fill = Age)) +
+  geom_bar(position = "stack") +
+  scale_fill_manual(values = c(
+    "0-19" = "paleturquoise",
+    "20-39" = "skyblue",
+    "40-59" = "steelblue",
+    "60-79" = "royalblue",
+    "80+" = "navy",
+    "Other" = "slategray"
+  )) +
+  labs(title = "Cause of Death by Age", x = "Cause", y = "Number of People") +
+  coord_flip() + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0))
+
+
+# Age All Deaths General % ------------------------------------------------
+percent_Age_data <- PEH_combined_Alphabet_Age %>%
+  group_by(grouped_deaths, Age) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+
+ggplot(percent_Age_data, aes(x = grouped_deaths, y = percentage, fill = Age)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "0-19" = "paleturquoise",
+    "20-39" = "skyblue",
+    "40-59" = "steelblue",
+    "60-79" = "royalblue",
+    "80+" = "navy",
+    "Other" = "slategray"
+  )) +
+  labs(title = "Cause of Death by Age (Percentage)", x = "Cause of Death",
+       y = "Percentage of People") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = ifelse(percentage > 2, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+# Finding PEH -------------------------------------------------------------
+
+PEH_combined_Alphabet2_homeless <- PEH_data %>%
+  mutate(grouped_deaths = case_when(
+    (str_starts(acmecod, "A") | str_starts(acmecod, "B")) ~ "Infectious Diseases",
+    (str_starts(acmecod, "C") | str_starts(acmecod, "D0") | str_starts(acmecod, "D1")
+     | str_starts(acmecod, "D2") | str_starts(acmecod, "D3") | str_starts(acmecod, "D4")) ~ "Cancer",
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Other",
+    (str_starts(acmecod, "E")) ~ "Nutritional Diseases",
+    (str_starts(acmecod, "F")) ~ "Neurodevelopmental Disorders",
+    (str_starts(acmecod, "G")) ~ "Nervous System Diseases",
+    (str_starts(acmecod, "H")) ~ "Other",
+    (str_starts(acmecod, "I")) ~ "Circulatory System Diseases",
+    (str_starts(acmecod, "J")) ~ "Respiratory System Diseases",
+    (str_starts(acmecod, "K")) ~ "Digestive System Diseases",
+    (str_starts(acmecod, "L")) ~ "Other",
+    (str_starts(acmecod, "M")) ~ "Other",
+    (str_starts(acmecod, "N")) ~ "Genitourinary System Diseases",
+    (str_starts(acmecod, "O")) ~ "Other",
+    (str_starts(acmecod, "P")) ~ "Other",
+    (str_starts(acmecod, "Q")) ~ "Other",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "T2") 
+     | str_starts(acmecod, "T30") | str_starts(acmecod, "T31")
+     | str_starts(acmecod, "T32") | str_starts(acmecod, "T33") 
+     | str_starts(acmecod, "T34") | str_starts(acmecod, "T51")
+     | str_starts(acmecod, "T52") | str_starts(acmecod, "T53")
+     | str_starts(acmecod, "T54") | str_starts(acmecod, "T55")
+     | str_starts(acmecod, "T56") | str_starts(acmecod, "T57")
+     | str_starts(acmecod, "T58") | str_starts(acmecod, "T59")
+     | str_starts(acmecod, "T6") | str_starts(acmecod, "T7")
+     | str_starts(acmecod, "T8") | str_starts(acmecod, "W")
+     | str_starts(acmecod, "X1") | str_starts(acmecod, "X2")
+     | str_starts(acmecod, "X3") | str_starts(acmecod, "X5")
+     | str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+     | str_starts(acmecod, "X8") | str_starts(acmecod, "X9")
+     | str_starts(acmecod, "Y") | str_starts(acmecod, "Z")
+     | str_starts(acmecod, "T35") | str_starts(acmecod, "T9")
+     | str_starts(acmecod, "W")) ~ "Other",
+    (str_starts(acmecod, "S") | str_starts(acmecod, "T0") 
+     | str_starts(acmecod, "T1")) ~ "Physical Injuries",
+    (str_starts(acmecod, "T36") | str_starts(acmecod, "T37")
+     | str_starts(acmecod, "T38") | str_starts(acmecod, "T39")
+     | str_starts(acmecod, "T4") | str_starts(acmecod, "T50")
+     | str_starts(acmecod, "X4")) ~ "Poisoning by Drugs",
+    (str_starts(acmecod, "U")) ~ "COVID-19",
+    (str_starts(acmecod, "V")) ~ "Vehicle Accidents",
+    TRUE ~ "Other")) 
+
+
+PEH_homeless <- PEH_combined_Alphabet2_homeless %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+ggplot(PEH_homeless, aes(x = Population_Breakdown)) +
+  geom_bar(fill = "steelblue") +
+  labs(title = "Number of PEH", x = "Population", y = "Number of People") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+# All Deaths only PEH -----------------------------------------------------
+PEH_homeless <- PEH_combined_Alphabet2_homeless %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+filtered_Only_homeless <- PEH_homeless %>%
+  filter(Population_Breakdown != "General Population")
+
+filtered_Only_homeless <- filtered_Only_homeless %>%
+  mutate(grouped_deaths = fct_infreq(grouped_deaths) %>% fct_rev())
+
+
+ggplot(filtered_Only_homeless, aes(x = grouped_deaths)) +
+  geom_bar(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Cause of Death for PEH", x = "Cause", y = "Number of People") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -0.5, size = 5) + #adds label above bar
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 0))  +
+  theme(plot.title = element_text(hjust = .5, size = 20, face = "bold")) +
+  theme(axis.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 14)) +
+  theme(plot.margin = margin(20, 20, 20, 20))
+
+
+# Race All Deaths Only PEH % -------------------------------------------
+
+PEH_combined_Homeless_Alphabet_Race <- PEH_combined_Alphabet2_homeless %>%
+    mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+    mutate(Race = case_when(
+      l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+      l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+      l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+      l_person_raceeth_fct %in% c("Other", "Unknown",
+                                  "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+      TRUE ~ l_person_raceeth_fct)) %>%
+    mutate(Population_Breakdown = case_when(
+      linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+      | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+      TRUE ~ "General Population"))
+
+filtered_Only_homeless_Race <- PEH_combined_Homeless_Alphabet_Race %>%
+  filter(Population_Breakdown != "General Population")
+
+percent_Race_homeless_data <- filtered_Only_homeless_Race %>%
+  group_by(grouped_deaths, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_Race_homeless_data, aes(x = grouped_deaths, y = percentage, fill = Race)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(
+    title = "Cause of Death by Race for PEH (Percentage)",
+    x = "Cause of Death",
+    y = "Percentage of People"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  ) +
+  geom_text(aes(label = ifelse(percentage > 10, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+# Race All Deaths PEH Rate ------------------------------------------------
+#Below commented out section found how many PEH of which race 
+# PEH_combined_Homeless_Alphabet_Race <- PEH_combined_Alphabet2_homeless %>%
+#   mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+#   mutate(Race = case_when(
+#     l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+#     l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+#     l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+#     l_person_raceeth_fct %in% c("Other", "Unknown",
+#                                 "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+#     TRUE ~ l_person_raceeth_fct)) %>%
+#   mutate(Population_Breakdown = case_when(
+#     linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+#     | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+#     TRUE ~ "General Population"))
+# 
+# filtered_Only_homeless_Race <- PEH_combined_Homeless_Alphabet_Race %>%
+#   filter(Population_Breakdown != "General Population")
+# 
+# ggplot(filtered_Only_homeless_Race, aes(x = Race)) +
+#   geom_bar(fill = "steelblue") +
+#   geom_text(stat = "count", aes(label = after_stat(count)), hjust = -.1, size = 5) +
+#   coord_flip() +
+#   labs(title = "Race", x = "Cause", y = "Number of People") +
+#   scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+#   theme(axis.text.x = element_text(angle = 0))  +
+#   theme(plot.title = element_text(hjust = .5, size = 20)) +
+#   theme(axis.title = element_text(size = 18)) +
+#   theme(axis.text.x = element_text(size = 14)) +
+#   theme(axis.text.y = element_text(size = 14)) +
+#   theme(plot.margin = margin(20, 20, 20, 20))
+
+race_population_homeless <- data.frame(
+  Race = c("Caucasian", "African American", "Hispanic", "Other"),
+  population = c(2710, 2047, 64, 58))
+  #these numbers came from above commented out section 
+
+# Summarize death counts and join PEH race population
+rate_Race_homeless_data <- filtered_Only_homeless_Race %>%
+  group_by(grouped_deaths, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  left_join(race_population_homeless, by = "Race") %>%
+  mutate(rate = (count / population) * 1000)
+
+rate_Race_homeless_data <- rate_Race_homeless_data %>%
+  group_by(grouped_deaths) %>%
+  mutate(total_rate = sum(rate)) %>%
+  ungroup() %>%
+  mutate(grouped_deaths = fct_reorder(grouped_deaths, total_rate))
+
+
+# Plot the rates
+ggplot(rate_Race_homeless_data, aes(x = grouped_deaths, y = rate, fill = Race)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  labs(
+    title = "Cause of Death by Race for PEH (Rate per 1,000 People)",
+    x = "Cause of Death",
+    y = "Rate per 1,000 People"
+  ) +
+  coord_flip() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)) +
+    theme(axis.text.x = element_text(angle = 0))  +
+    theme(plot.title = element_text(hjust = .5, size = 20, face = "bold")) +
+    theme(axis.title = element_text(size = 18)) +
+    theme(axis.text.x = element_text(size = 14)) +
+    theme(axis.text.y = element_text(size = 14)) +
+    theme(plot.margin = margin(20, 20, 20, 20))
+
+# Sex All Deaths only PEH % -----------------------------------------------
+
+filtered_Only_homeless <- PEH_homeless %>%
+  filter(Population_Breakdown != "General Population")
+
+percent_Sex_homeless_data <- filtered_Only_homeless %>%
+  group_by(grouped_deaths, l_person_sex_fct) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_Sex_homeless_data, aes(x = grouped_deaths, y = percentage, fill = l_person_sex_fct)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Female" = "skyblue",
+    "Male" = "royalblue"
+  )) +
+  labs(
+    title = "Cause of Death by Sex for PEH (Percentage)",
+    x = "Cause of Death",
+    y = "Percentage of People"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  ) +
+  geom_text(aes(label = ifelse(percentage > 10, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+# Sex All Deaths PEH Rate  ------------------------------------------------
+#come back to
+
+
+# Age All Deaths only PEH % -----------------------------------------------
+
+PEH_combined_Homeless_Alphabet_Age <- PEH_combined_Alphabet_Age %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+filtered_Only_homeless_Age <- PEH_combined_Homeless_Alphabet_Age %>%
+  filter(Population_Breakdown != "General Population")
+
+percent_Age_homeless_data <- filtered_Only_homeless_Age %>%
+  group_by(grouped_deaths, Age) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_Age_homeless_data, aes(x = grouped_deaths, y = percentage, fill = Age)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "0-19" = "paleturquoise",
+    "20-39" = "skyblue",
+    "40-59" = "steelblue",
+    "60-79" = "royalblue",
+    "80+" = "navy",
+    "Other" = "slategray"
+  )) +
+  labs(
+    title = "Cause of Death by Age for PEH (Percentage)",
+    x = "Cause of Death",
+    y = "Percentage of People"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  ) +
+  geom_text(aes(label = ifelse(percentage > 2, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+
+# All Deaths Homeless Vs Housed with Count  ----------------------------------------------------------------
+
+PEH_homeless <- PEH_combined_Alphabet2_homeless %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+  ggplot(PEH_homeless, aes(x = grouped_deaths, fill = Population_Breakdown)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c(
+    "PEH" = "black",
+    "General Population" = "skyblue"
+  )) +
+  labs(title = "Cause of Death in General Population vs PEH", x = "Cause", 
+       y = "Number of People") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+
+# Finding Rates -----------------------------------------------------------
+
+#numbers came from Finding PEH
+PEH_pop_total <- 4879
+general_pop_total <- 664726
+
+rates_df <- PEH_homeless %>%
+  group_by(grouped_deaths, Population_Breakdown) %>%
+  summarise(deaths = n(), .groups = "drop") %>%
+  mutate(rate = case_when(
+    Population_Breakdown == "PEH" ~ deaths / PEH_pop_total * 1000,
+    Population_Breakdown == "General Population" ~ deaths / general_pop_total * 1000
+  ))
+  
+# All Deaths Homeless Vs Housed with Rate --------------------------------------------
+
+rates_df <- rates_df %>%
+  mutate(grouped_deaths = reorder(grouped_deaths, rate))
+
+ggplot(rates_df, aes(x = grouped_deaths, y=rate, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c(
+    "PEH" = "royalblue",
+    "General Population" = "skyblue"
+  )) +
+  labs(title = "Cause of Death in General Population vs PEH", x = "Cause", 
+       y = "Rate of Death Per 1000 People") +
+  coord_flip() + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = round(rate, 2)), hjust = -.1, position = position_dodge(width = 0.9))
+
+# All Deaths Homeless Vs Housed with Percentages -------------------------------------
+
+count_df <- PEH_combined_Alphabet2_homeless %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus == "Death-HMIS Linked" ~ "PEH",
+    TRUE ~ "General Population"
+  )) %>%
+  group_by(grouped_deaths, Population_Breakdown) %>%
+  summarise(count = n(), .groups = "drop")
+
+percent_df <- count_df %>%
+  group_by(Population_Breakdown) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+library(forcats)
+
+percent_df <- percent_df %>%
+  mutate(grouped_deaths = fct_reorder(grouped_deaths, percentage, .fun = sum))
+
+ggplot(percent_df, aes(x = grouped_deaths, y = percentage, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c(
+    "PEH" = "royalblue",
+    "General Population" = "skyblue"
+  )) +
+  labs(title = "Cause of Death in General Population vs PEH", x = "Cause",
+       y = "Percentage of Deaths") +
+  coord_flip() +
+  theme_minimal() +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme(plot.title = element_text(hjust = .5, size = 20)) +
+  theme(axis.text.x = element_text(angle = 0)) +
+  theme(axis.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 14)) +
+  theme(plot.margin = margin(20, 20, 20, 20)) +
+  theme(legend.text = element_text(size = 14)) +
+  theme(legend.title = element_text(size = 16)) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), hjust = -.1, size = 5,
+            position = position_dodge(width = 0.9)) 
+
+
+# All Deaths Comparing PEH and General Race -------------------------------
+
+# PEH_combined_Homeless_Alphabet_Race <- PEH_combined_Alphabet2 %>%
+#   mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+#   mutate(Race = case_when(
+#     l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+#     l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+#     l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+#     l_person_raceeth_fct %in% c("Other", "Unknown",
+#                                 "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+#     TRUE ~ l_person_raceeth_fct)) %>%
+#   mutate(PopulationBreakdown = case_when(
+#     linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+#     | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+#     TRUE ~ "General Population"))
+#     
+# 
+# ggplot(PEH_combined_Homeless_Alphabet_Race,
+#        aes(x = grouped_deaths, fill = Race)) +
+#   geom_bar( aes(group = PopulationBreakdown),
+#             position = position_dodge(preserve = "single"),
+#            stat = "count") +
+#   scale_fill_manual(values = c(
+#     "Caucasian" = "skyblue",
+#     "African American" = "royalblue",
+#     "Hispanic" = "slategray",
+#     "Other" = "black"
+#   )) +
+#   labs(title = "Cause of Death by Race: PEH vs General Population",
+#        x = "Cause of Death", y = "Number of People") +
+#   coord_flip() +
+#   theme_minimal() +
+#   theme(plot.title = element_text(hjust = 0.5),
+#         axis.text.x = element_text(angle = 0)) +
+#   guides(fill = guide_legend(title = "Race"))
+
+
+
+# Other Deaths Graph for General Population  ------------------------------------------------------------
+
+PEH_other <- PEH_data %>%
+  mutate(Other = case_when(
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+    | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Blood Diseases",
+    (str_starts(acmecod, "H") | str_starts(acmecod, "L")) ~ "Diseases of the Eye/Ear/Skin",
+    (str_starts(acmecod, "M")) ~ "Diseases of Muscoskeletal System",
+    (str_starts(acmecod, "O")) ~ "Pregnancy/Childbirth",
+    (str_starts(acmecod, "P")) ~ "Perinatal Conditions",
+    (str_starts(acmecod, "Q")) ~ "Congenital Malformations",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "X5")
+    | str_starts(acmecod, "Z") | str_starts(acmecod, "T9") ) ~ "Unknown", 
+    (str_starts(acmecod, "T2") | str_starts(acmecod, "T30") 
+    | str_starts(acmecod, "T31") | str_starts(acmecod, "T32") 
+    | str_starts(acmecod, "T33") | str_starts(acmecod, "T34")
+    | str_starts(acmecod, "T35") | str_starts(acmecod, "X1") 
+    | str_starts(acmecod, "X2") | str_starts(acmecod, "X3")) ~ "Weather/Natural Disasters",
+    (str_starts(acmecod, "T51") | str_starts(acmecod, "T52") 
+    | str_starts(acmecod, "T53") | str_starts(acmecod, "T54") 
+    | str_starts(acmecod, "T55") | str_starts(acmecod, "T56") 
+    | str_starts(acmecod, "T57") | str_starts(acmecod, "T58") 
+    | str_starts(acmecod, "T59") | str_starts(acmecod, "T6") 
+    | str_starts(acmecod, "T7") | str_starts(acmecod, "T8")) ~ "Toxic Effects of Substances",
+    (str_starts(acmecod, "W")) ~ "Falling",
+    (str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+    | str_starts(acmecod, "X8")) ~ "Suicide",
+    (str_starts(acmecod, "X9") | str_starts(acmecod, "Y0")) ~ "Assault",
+    (str_starts(acmecod, "Y1") | str_starts(acmecod, "Y2")
+    | str_starts(acmecod, "Y3") | str_starts(acmecod, "Y4")
+    | str_starts(acmecod, "Y5") | str_starts(acmecod, "Y6")
+    | str_starts(acmecod, "Y7") | str_starts(acmecod, "Y8")
+    | str_starts(acmecod, "Y9")) ~ "Accident",
+    TRUE ~ "Main Deaths")) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+PEH_other <- PEH_other %>%
+  filter(Population_Breakdown != "PEH")
+
+  
+filtered_Only_other <- PEH_other %>%
+  filter(Other != "Main Deaths") %>%
+  mutate(Other = fct_infreq(Other) %>% fct_rev())
+
+
+ggplot(filtered_Only_other, aes(x = Other)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -.1) +
+  coord_flip() +
+  labs(title = "Other Causes of Death for General Population", x = "Cause", y = "Number of People") +
+  theme(axis.text.x = element_text(angle = 0)) +
+  theme(plot.title = element_text(hjust = .5)) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme(axis.text.x = element_text(angle = 0))  +
+  theme(plot.title = element_text(hjust = .5, size = 20, face = "bold")) +
+  theme(axis.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 14)) +
+  theme(plot.margin = margin(20, 20, 20, 20))
+
+
+
+# Other Deaths Graph for PEH ----------------------------------------------
+
+filtered_Only_homeless_other <- PEH_homeless_other %>%
+  filter(Other != "Main Deaths") %>%
+  filter(Population_Breakdown != "General Population")
+
+filtered_Only_homeless_other <- filtered_Only_homeless_other %>%
+  mutate(Other = fct_infreq(Other) %>% fct_rev())
+
+ggplot(filtered_Only_homeless_other, aes(x = Other)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), hjust = -.1, size = 5) +
+  coord_flip() +
+  labs(title = "Other Causes of Death for PEH", x = "Cause", y = "Number of People") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme(axis.text.x = element_text(angle = 0))  +
+  theme(plot.title = element_text(hjust = .5, size = 20, face = "bold")) +
+  theme(axis.title = element_text(size = 18)) +
+  theme(axis.text.x = element_text(size = 14)) +
+  theme(axis.text.y = element_text(size = 14)) +
+  theme(plot.margin = margin(20, 20, 20, 20))
+ 
+# Other Deaths Graph Comparing PEH and General By count  ----------------------------------
+
+PEH_homeless_other <- PEH_combined_Alphabet2_homeless %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked") ~ "PEH",
+    TRUE ~ "General Population")) %>%
+  mutate(Other = case_when(
+    (str_starts(acmecod, "D5") | str_starts(acmecod, "D6") | str_starts(acmecod, "D7") 
+     | str_starts(acmecod, "D8") | str_starts(acmecod, "D9")) ~ "Blood Diseases",
+    (str_starts(acmecod, "H") | str_starts(acmecod, "L")) ~ "Diseases of the Eye/Ear/Skin",
+    (str_starts(acmecod, "M")) ~ "Diseases of Muscoskeletal System",
+    (str_starts(acmecod, "O")) ~ "Pregnancy/Childbirth",
+    (str_starts(acmecod, "P")) ~ "Perinatal Conditions",
+    (str_starts(acmecod, "Q")) ~ "Congenital Malformations",
+    (str_starts(acmecod, "R") | str_starts(acmecod, "X5")
+     | str_starts(acmecod, "Z") | str_starts(acmecod, "T9") ) ~ "Unknown", 
+    (str_starts(acmecod, "T2") | str_starts(acmecod, "T30") 
+     | str_starts(acmecod, "T31") | str_starts(acmecod, "T32") 
+     | str_starts(acmecod, "T33") | str_starts(acmecod, "T34")
+     | str_starts(acmecod, "T35") | str_starts(acmecod, "X1") 
+     | str_starts(acmecod, "X2") | str_starts(acmecod, "X3")) ~ "Weather/Natural Disasters",
+    (str_starts(acmecod, "T51") | str_starts(acmecod, "T52") 
+     | str_starts(acmecod, "T53") | str_starts(acmecod, "T54") 
+     | str_starts(acmecod, "T55") | str_starts(acmecod, "T56") 
+     | str_starts(acmecod, "T57") | str_starts(acmecod, "T58") 
+     | str_starts(acmecod, "T59") | str_starts(acmecod, "T6") 
+     | str_starts(acmecod, "T7") | str_starts(acmecod, "T8")) ~ "Toxic Effects of Substances",
+    (str_starts(acmecod, "W")) ~ "Falling",
+    (str_starts(acmecod, "X6") | str_starts(acmecod, "X7")
+     | str_starts(acmecod, "X8")) ~ "Suicide",
+    (str_starts(acmecod, "X9") | str_starts(acmecod, "Y0")) ~ "Assault",
+    (str_starts(acmecod, "Y1") | str_starts(acmecod, "Y2")
+     | str_starts(acmecod, "Y3") | str_starts(acmecod, "Y4")
+     | str_starts(acmecod, "Y5") | str_starts(acmecod, "Y6")
+     | str_starts(acmecod, "Y7") | str_starts(acmecod, "Y8")
+     | str_starts(acmecod, "Y9")) ~ "Accident",
+    TRUE ~ "Main Deaths"))
+
+filtered_Only_homeless_other <- PEH_homeless_other %>%
+  filter(Other != "Main Deaths")
+  
+
+ggplot(filtered_Only_homeless_other, aes(x = Other, fill = Population_Breakdown)) +
+  geom_bar(position = "dodge") +
+  scale_fill_manual(values = c(
+    "PEH" = "black",
+    "General Population" = "skyblue"
+  )) +
+  labs(title = "Cause of Other Death in General Population vs PEH", x = "Cause", 
+       y = "Number of People") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Other Deaths Graph Comparing PEH and General by % ------------------------------
+
+count_other <- filtered_Only_homeless_other %>%
+  group_by(Other, Population_Breakdown) %>%
+  summarise(count = n(), .groups = "drop")
+
+percent_other <- count_other %>%
+  group_by(Population_Breakdown) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+library(forcats)
+
+percent_other <- percent_other %>%
+  mutate(Other = fct_reorder(Other, percentage, .fun = sum))
+
+ggplot(percent_other, aes(x = Other, y = percentage, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c(
+    "PEH" = "royalblue",
+    "General Population" = "skyblue"
+  )) +
+  labs(title = "Cause of Other Death in General Population vs PEH", x = "Cause",
+       y = "Percentage of Deaths") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), hjust = -.1,
+            position = position_dodge(width = 0.9)) 
+
+
+
+
+# Other Deaths General Race -----------------------------------------------
+
+PEH_other_Race <- filtered_Only_other %>%
+  mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+    mutate(Race = case_when(
+      l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+      l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+      l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+      l_person_raceeth_fct %in% c("Other", "Unknown",
+                                  "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+      TRUE ~ l_person_raceeth_fct))
+
+percent_other_Race_data <- PEH_other_Race%>%
+  group_by(Other, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Other) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_other_Race_data, aes(x = Other, y = percentage, fill = Race)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Caucasian" = "skyblue",
+    "African American" = "royalblue",
+    "Hispanic" = "slategray",
+    "Other" = "black"
+  )) +
+  geom_text(aes(label = ifelse(percentage > 3, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 3) +
+  coord_flip() +
+  labs(title = "Other Causes of Death for General Pop. by Race", x = "Cause", y = "Number of People") +
+  theme(axis.text.x = element_text(angle = 0)) +
+  theme(plot.title = element_text(hjust = .5))
+
+# Other Deaths PEH Race ---------------------------------------------------
+# come back to 
+
+# Other Deaths General Sex ------------------------------------------------
+
+percent_Sex_data <- filtered_Only_other %>%
+  group_by(Other, l_person_sex_fct) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Other) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_Sex_data, aes(x = Other, y = percentage, fill = l_person_sex_fct)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "Female" = "skyblue",
+    "Male" = "royalblue"
+  )) +
+  labs(title = "Cause of Other Death in General Pop. by Sex (Percentage)", x = "Cause of Death",
+       y = "Percentage of People") +
+  coord_flip() +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = ifelse(percentage > 10, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 4)
+
+# Other Deaths General Age  -----------------------------------------------
+
+PEH_other_Age <- filtered_Only_other %>%
+  mutate(Age = case_when(
+    l_person_age_num %in% 0:19 ~ "0-19",
+    l_person_age_num %in% 20:39 ~ "20-39", 
+    l_person_age_num %in% 40:59 ~ "40-59",
+    l_person_age_num %in% 60:79 ~ "60-79",
+    l_person_age_num %in% 80:120 ~ "80+",
+    TRUE ~ "Other"))
+
+percent_other_Age_data <- PEH_other_Age%>%
+  group_by(Other, Age) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Other) %>%
+  mutate(percentage = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(percent_other_Age_data, aes(x = Other, y = percentage, fill = Age)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c(
+    "0-19" = "paleturquoise",
+    "20-39" = "skyblue",
+    "40-59" = "steelblue",
+    "60-79" = "royalblue",
+    "80+" = "navy",
+    "Other" = "slategray"
+  )) +
+  geom_text(aes(label = ifelse(percentage > 3, paste0(round(percentage, 1), "%"), "")),
+            position = position_stack(vjust = 0.5),
+            color = "white",
+            size = 3) +
+  coord_flip() +
+  labs(title = "Other Causes of Death for General Pop. by Age", x = "Cause", y = "Number of People") +
+  theme(axis.text.x = element_text(angle = 0)) +
+  theme(plot.title = element_text(hjust = .5))
+
+# To Do:  -----------------------------------------------------------------
+# - Make a location graph 
+# - Accidental vs Natural deaths?
+# - Make an other graph 
+
+
+
+
