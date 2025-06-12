@@ -1,0 +1,300 @@
+#couple of tables with years 
+# Background --------------------------------------------------------------
+setwd("~/Desktop/Data Plus")
+PEH_data2 <- read.csv("Data Plus Part 2.csv")
+PEH_data <- read.csv("Data Plus 2.csv")
+
+
+table(PEH_data$l_place_rcounty_fct)
+
+#viewing unique values in each column
+for (colname in names(PEH_data)) {
+  cat("Unique values in", colname, ":\n")
+  print(unique(PEH_data[[colname]]))
+  cat("\n")
+}
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(stringr)
+
+
+# total number of People who died each year ----------------------------------------------
+
+PEH_years <- PEH_data2 %>%
+  mutate(years = case_when(
+    (str_starts(l_time_eventdate_date, "2019")) ~ "2019",
+    (str_starts(l_time_eventdate_date, "2020")) ~ "2020",
+    (str_starts(l_time_eventdate_date, "2021")) ~ "2021",
+    (str_starts(l_time_eventdate_date, "2022")) ~ "2022",
+    (str_starts(l_time_eventdate_date, "2023")) ~ "2023",
+    (str_starts(l_time_eventdate_date, "2024")) ~ "2024",
+    TRUE ~ "Other")) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+PEH_years <- PEH_years %>%
+  filter(Population_Breakdown != "PEH")
+
+ggplot(PEH_years, aes(x = years)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Years of Death", x = "Year", y = "Number of People") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# total number of PEH deaths each year  -----------------------------------
+
+PEH_years_homeless <- PEH_data2 %>%
+  mutate(years = case_when(
+    (str_starts(l_time_eventdate_date, "2019")) ~ "2019",
+    (str_starts(l_time_eventdate_date, "2020")) ~ "2020",
+    (str_starts(l_time_eventdate_date, "2021")) ~ "2021",
+    (str_starts(l_time_eventdate_date, "2022")) ~ "2022",
+    (str_starts(l_time_eventdate_date, "2023")) ~ "2023",
+    (str_starts(l_time_eventdate_date, "2024")) ~ "2024",
+    TRUE ~ "Other")) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+PEH_years_homeless <- PEH_years_homeless %>%
+  filter(Population_Breakdown == "PEH")
+
+ggplot(PEH_years_homeless, aes(x = years)) +
+  geom_bar(fill = "steelblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(title = "Years of Death for PEH", x = "Year", y = "Number of People") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+#Comparing Demographics between PEH and general 
+# Background --------------------------------------------------------------
+setwd("~/Desktop/Data Plus")
+PEH_data2 <- read.csv("Data Plus Part 2.csv")
+PEH_data <- read.csv("Data Plus 2.csv")
+
+
+table(PEH_data$l_place_rcounty_fct)
+
+#viewing unique values in each column
+for (colname in names(PEH_data)) {
+  cat("Unique values in", colname, ":\n")
+  print(unique(PEH_data[[colname]]))
+  cat("\n")
+}
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(stringr)
+
+# Comparing PEH and General Race -------------------------------
+
+PEH_combined_Homeless_Alphabet_Race <- PEH_combined_Alphabet2_homeless %>%
+  mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% 
+  mutate(Race = case_when(
+    l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+    l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+    l_person_raceeth_fct %in% c("Hispanic/Latinx") ~ "Hispanic",
+    l_person_raceeth_fct %in% c("Other", "Unknown",
+                                "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+    TRUE ~ l_person_raceeth_fct)) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+race_rates <- PEH_combined_Homeless_Alphabet_Race %>%
+  group_by(Population_Breakdown, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Population_Breakdown) %>%
+  mutate(rate = 100 * count / sum(count)) %>%
+  ungroup()
+
+
+ggplot(race_rates, aes(x = Race, y = rate, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("PEH" = "navy", "General Population" = "steelblue")) +
+  labs(title = "Race Distribution: PEH vs General Population",
+       x = "Race",
+       y = "Percentage",
+       fill = "Population") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = paste0(round(rate, 1), "%")),
+            position = position_dodge(width = 0.9),
+            vjust = -0.2,
+            size = 3.5)
+
+
+# PEH vs general Age ------------------------------------------------------
+
+PEH_combined_Homeless_Alphabet_Age <- PEH_combined_Alphabet_Age %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+age_rates <- PEH_combined_Homeless_Alphabet_Age %>%
+  group_by(Population_Breakdown, Age) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Population_Breakdown) %>%
+  mutate(rate = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(age_rates, aes(x = Age, y = rate, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("PEH" = "navy", "General Population" = "steelblue")) +
+  labs(title = "Age Distribution: PEH vs General Population",
+       x = "Age",
+       y = "Percentage",
+       fill = "Population") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1)) +
+  geom_text(aes(label = paste0(round(rate, 1), "%")),
+            position = position_dodge(width = 0.9),
+            vjust = -0.2,
+            size = 3.5)
+
+# PEH vs general Sex ------------------------------------------------------
+
+sex_rates <- PEH_combined_Alphabet2 %>%
+  filter(l_person_sex_fct != "Unknown") %>% 
+  group_by(Population_Breakdown, l_person_sex_fct) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(Population_Breakdown) %>%
+  mutate(rate = 100 * count / sum(count)) %>%
+  ungroup()
+
+ggplot(sex_rates, aes(x = l_person_sex_fct, y = rate, fill = Population_Breakdown)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("PEH" = "navy", "General Population" = "steelblue")) +
+  labs(title = "Sex Distribution: PEH vs General Population", x = "Sex", y = "Percentage") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = .5)) +
+  theme(axis.text.x = element_text(angle = 0)) +
+  geom_text(aes(label = paste0(round(rate, 1), "%")),
+            position = position_dodge(width = 0.9),
+            vjust = -0.2,
+            size = 3.5)
+
+#Comparing Deaths on the same graph PEH and general --------------------------------------------
+# Background --------------------------------------------------------------
+setwd("~/Desktop/Data Plus")
+PEH_data2 <- read.csv("Data Plus Part 2.csv")
+PEH_data <- read.csv("Data Plus 2.csv")
+
+
+table(PEH_data$l_place_rcounty_fct)
+
+#viewing unique values in each column
+for (colname in names(PEH_data)) {
+  cat("Unique values in", colname, ":\n")
+  print(unique(PEH_data[[colname]]))
+  cat("\n")
+}
+
+library(ggplot2)
+library(dplyr)
+library(forcats)
+library(stringr)
+
+# Comparing COD by Sex -------------------------------------------------------
+
+sex_rates_by_cause <- PEH_combined_Alphabet2 %>%
+  filter(l_person_sex_fct %in% c("Male", "Female")) %>% #removes Unknown 
+  group_by(grouped_deaths, Population_Breakdown, l_person_sex_fct) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths, Population_Breakdown) %>%
+  mutate(rate = 100 * count / sum(count)) %>%
+  ungroup() %>%
+  mutate(
+    PopulationSex = paste(Population_Breakdown, l_person_sex_fct, sep = " - "))
+
+ggplot(sex_rates_by_cause, aes(x = grouped_deaths, y = rate, fill = PopulationSex)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(
+    aes(label = paste0(round(rate, 1), "%")),
+    position = position_stack(vjust = 0.5),
+    color = "white",
+    size = 3
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = c(
+    "PEH - Male" = "navy",
+    "PEH - Female" = "skyblue",
+    "General Population - Male" = "darkred",
+    "General Population - Female" = "salmon"
+  )) +
+  labs(
+    title = "Sex Distribution by Cause of Death (Rates): PEH vs General Population",
+    x = "Cause of Death",
+    y = "Percentage within Group",
+    fill = "Group"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  )
+
+
+# Comparing COD by Race -------------------------------------------------------
+
+PEH_combined_Homeless_Alphabet_Race <- PEH_combined_Alphabet2_homeless %>%
+  mutate(l_person_raceeth_fct = str_trim(str_to_title(l_person_raceeth_fct))) %>% # Capitalize and trim spaces
+  mutate(Race = case_when(
+    l_person_raceeth_fct %in% c("White Nh") ~ "Caucasian",
+    l_person_raceeth_fct %in% c("Black Nh") ~ "African American",
+    l_person_raceeth_fct %in% c("Other", "Hispanic/Latinx", "Unknown",
+                                "Indiginous Nh", "Asian/Nhpi Nh","", NA) ~ "Other",
+    TRUE ~ l_person_raceeth_fct)) %>%
+  mutate(Population_Breakdown = case_when(
+    linked_hmis_linkstatus %in% c("Death-HMIS Linked")
+    | linked_sudovdrs_homeless %in% c("Yes") ~ "PEH",
+    TRUE ~ "General Population"))
+
+
+race_rates_by_cause <- PEH_combined_Homeless_Alphabet_Race %>%
+  group_by(grouped_deaths, Population_Breakdown, Race) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  group_by(grouped_deaths, Population_Breakdown) %>%
+  mutate(rate = 100 * count / sum(count)) %>%
+  ungroup() %>%
+  mutate(
+    PopulationRace = paste(Population_Breakdown, Race, sep = " - "))
+
+ggplot(race_rates_by_cause, aes(x = grouped_deaths, y = rate, fill = PopulationRace)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(
+    aes(label = ifelse(rate > 7, paste0(round(rate, 1), "%"), "")),
+    position = position_stack(vjust = 0.5),
+    color = "white",
+    size = 3
+  ) +
+  coord_flip() +
+  scale_fill_manual(values = c(
+    "PEH - African American" = "navy",
+    "PEH - Caucasian" = "skyblue",
+    "PEH - Other" = "lightblue",
+    "General Population - African American" = "darkred",
+    "General Population - Caucasian" = "salmon",
+    "General Population - Other" = "lightpink")) +
+  labs(
+    title = "Race Distribution by Cause of Death (Rates): PEH vs General Population",
+    x = "Cause of Death",
+    y = "Percentage within Group",
+    fill = "Group"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0)
+  )
+
